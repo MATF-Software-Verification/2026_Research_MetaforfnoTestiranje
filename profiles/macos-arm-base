@@ -1,0 +1,11 @@
+[settings]
+os=Macos
+arch=armv8
+compiler=apple-clang
+compiler.version=17
+compiler.libcxx=libc++
+compiler.cppstd=20
+
+[conf]
+tools.build:compiler_executables={"c": "clang", "cpp": "clang++"}
+tools.cmake.cmaketoolchain:generator=Ninja
