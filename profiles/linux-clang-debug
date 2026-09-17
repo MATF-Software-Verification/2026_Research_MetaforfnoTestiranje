@@ -1,0 +1,4 @@
+include(linux-clang-base)
+
+[settings]
+build_type=Debug
