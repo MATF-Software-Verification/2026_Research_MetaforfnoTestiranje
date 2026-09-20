@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
         mt::clients::ElasticsearchSearchClient client;
         for (int i = 0; i < pages.size(); ++i) {
             client.index_document((i + 1), pages[i]);
-        } 
+        }
         std::cout << "indexed " << pages.size() << " pages\n";
 
         const auto tokens = client.get_tokens();

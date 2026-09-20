@@ -27,7 +27,8 @@ void expect_ok(const httplib::Result& res, const std::string& action) {
         throw std::runtime_error("Elasticsearch: " + action + " failed: " + httplib::to_string(res.error()));
     }
     if (res->status < 200 || res->status >= 300) {
-        throw std::runtime_error("Elasticsearch: " + action + " failed with HTTP " + std::to_string(res->status) + ": " + res->body);
+        throw std::runtime_error("Elasticsearch: " + action + " failed with HTTP " + std::to_string(res->status) +
+                                 ": " + res->body);
     }
 }
 
@@ -63,7 +64,8 @@ void ElasticsearchSearchClient::wait_until_ready() {
         }
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    throw std::runtime_error("Elasticsearch at " + http->host() + ":" + std::to_string(http->port()) + " did not become ready");
+    throw std::runtime_error("Elasticsearch at " + http->host() + ":" + std::to_string(http->port()) +
+                             " did not become ready");
 }
 
 void ElasticsearchSearchClient::ensure_pipeline() {
@@ -91,8 +93,8 @@ void ElasticsearchSearchClient::ensure_index() {
 
     auto res = http->Put("/" + index_name, index.dump(), json_content_type);
 
-    const bool already_exists = res && res->status == 400 &&
-                                res->body.find("resource_already_exists_exception") != std::string::npos;
+    const bool already_exists =
+        res && res->status == 400 && res->body.find("resource_already_exists_exception") != std::string::npos;
     if (already_exists) {
         return;
     }
@@ -153,7 +155,7 @@ std::vector<std::string> ElasticsearchSearchClient::get_tokens() {
 
     const auto response = nlohmann::json::parse(vectors->body);
     std::set<std::string> tokens;
-    for (  auto& doc : response.at("docs")) {
+    for (auto& doc : response.at("docs")) {
         if (!doc.value("found", false) || !doc.contains("term_vectors") ||
             !doc.at("term_vectors").contains("attachment.content")) {
             continue;

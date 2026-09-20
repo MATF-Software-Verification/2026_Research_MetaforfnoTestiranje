@@ -1,11 +1,10 @@
 #pragma once
 #include <cstddef>
 #include <span>
-#include <unordered_set>
 #include <string>
+#include <unordered_set>
 
 namespace matf::verification::metamorphic_testing::clients {
-
 
 class SearchEngineClient {
 public:
@@ -13,6 +12,5 @@ public:
     virtual std::unordered_set<int> query(std::string input) = 0;
     virtual ~SearchEngineClient() = default;
 };
-
 
 } // namespace matf::verification::metamorphic_testing::clients

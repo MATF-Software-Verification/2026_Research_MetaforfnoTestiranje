@@ -11,4 +11,4 @@ std::unordered_set<int> DummySearchClient::query(std::string input) {
     std::cout << "querying for input " << input << std::endl;
     return {1};
 }
-}
+} // namespace matf::verification::metamorphic_testing::clients
