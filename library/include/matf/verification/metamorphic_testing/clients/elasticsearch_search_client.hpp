@@ -24,7 +24,7 @@ public:
 private:
     void wait_until_ready();
     void ensure_pipeline();
-    void ensure_index();
+    void recreate_index();
 
     std::unique_ptr<httplib::Client> http;
     std::string index_name;

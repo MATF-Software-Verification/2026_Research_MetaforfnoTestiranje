@@ -10,6 +10,7 @@ add_library(metamorphic_testing
     src/clients/elasticsearch_search_client.cpp
     src/pdf/pdf_splitter.cpp
     src/relations/capitalization_irrelevance.cpp
+    src/token_generator.cpp
 )
 add_library(matf::metamorphic_testing ALIAS metamorphic_testing)
 
