@@ -1,10 +1,10 @@
 #pragma once
 
-#include <matf/verification/metamorphic_testing/relations/metamorphic_relation.hpp>
 #include <matf/verification/metamorphic_testing/clients/search_engine_client.hpp>
+#include <matf/verification/metamorphic_testing/relations/metamorphic_relation.hpp>
 
-#include <string>
 #include <iostream>
+#include <string>
 
 namespace matf::verification::metamorphic_testing {
 
@@ -20,7 +20,8 @@ public:
         auto relation_holds = relation.holds(original_result, new_result);
         std::cout << "result: " << relation_holds << std::endl;
     }
-private: 
+
+private:
     clients::SearchEngineClient& client;
 };
-}
+} // namespace matf::verification::metamorphic_testing

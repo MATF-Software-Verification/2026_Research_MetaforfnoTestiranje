@@ -11,10 +11,10 @@ class Client;
 
 namespace matf::verification::metamorphic_testing::clients {
 
-
 class ElasticsearchSearchClient : public SearchEngineClient {
 public:
-    explicit ElasticsearchSearchClient(std::string host = "localhost", int port = 9200, std::string index_name = "docs");
+    explicit ElasticsearchSearchClient(std::string host = "localhost", int port = 9200,
+                                       std::string index_name = "docs");
     ~ElasticsearchSearchClient() override;
 
     void index_document(int id, std::span<const std::byte> content) override;
@@ -29,6 +29,5 @@ private:
     std::unique_ptr<httplib::Client> http;
     std::string index_name;
 };
-
 
 } // namespace matf::verification::metamorphic_testing::clients

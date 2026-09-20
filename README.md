@@ -8,6 +8,7 @@
 | Conan | 2.0 or newer |
 | Ninja | any recent |
 | Clang | 22 (tested) |
+| clang-format | 16 or newer, tested with 22 (formatting only) |
 
 ## Build
 
@@ -32,3 +33,26 @@ Install the CMake Tools and C/C++ extensions. Then:
 2. Open the project folder.
 3. Pick the `conan-debug` preset when VS Code asks.
 4. Press F7 to build.
+
+## Formatting
+
+Style lives in `.clang-format` at the repo root. Format every C++ source in place:
+
+```sh
+./format.sh
+```
+
+Report violations without touching anything (exits non-zero if any are found):
+
+```sh
+./format.sh --check
+```
+
+Format specific files:
+
+```sh
+./format.sh library/src/pdf/pdf_splitter.cpp
+```
+
+The script picks the first `clang-format` it finds on `PATH`, falling back to the
+Homebrew LLVM install. Override it with `CLANG_FORMAT=/path/to/clang-format`.
