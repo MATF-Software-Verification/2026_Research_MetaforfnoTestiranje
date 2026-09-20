@@ -14,6 +14,8 @@ public:
     Verifier(clients::SearchEngineClient& client) : client(client) {};
     void verify_relation(std::string input, relations::MetamorphicRelation& relation) {
         auto modified_input = relation.mutate_input(input);
+        spdlog::info("Checking if {} holds for original: \"{}\" and modified: \"{}\"", relation.get_name(), input,
+                     modified_input);
 
         auto new_result = client.query(modified_input);
         auto original_result = client.query(input);

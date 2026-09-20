@@ -69,6 +69,7 @@ int main(int argc, char** argv) {
         mt::TokenGenerator token_generator(TOKENS_FILE_PATH);
         mt::relations::CapitalizationIrrelevance relation(token_generator);
         mt::Verifier verifier(client);
+
         verifier.verify_relation(token_generator.get_random_token(), relation);
     } catch (const std::exception& e) {
         spdlog::error("{}", e.what());
