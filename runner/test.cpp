@@ -9,6 +9,8 @@
 #include <iterator>
 #include <set>
 #include <span>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace mt = matf::verification::metamorphic_testing;
@@ -34,6 +36,18 @@ int main(int argc, char** argv) {
             client.index_document((i + 1), pages[i]);
         } 
         std::cout << "indexed " << pages.size() << " pages\n";
+
+        const auto tokens = client.get_tokens();
+
+        const std::string tokens_path = "tokens.txt";
+        std::ofstream tokens_file(tokens_path);
+        if (!tokens_file) {
+            throw std::runtime_error("cannot write " + tokens_path);
+        }
+        for (const auto& token : tokens) {
+            tokens_file << token << "\n";
+        }
+        std::cout << "wrote " << tokens.size() << " tokens to " << tokens_path << "\n";
 
         const auto matches = client.query(argv[2]);
         std::cout << "pages matching '" << argv[2] << "':";

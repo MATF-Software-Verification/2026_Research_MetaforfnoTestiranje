@@ -1,9 +1,11 @@
 #include <matf/verification/metamorphic_testing/clients/elasticsearch_search_client.hpp>
 
+#include <b64/cencode.h>
 #include <httplib.h>
 #include <nlohmann/json.hpp>
 
 #include <chrono>
+#include <set>
 #include <stdexcept>
 #include <thread>
 
@@ -17,6 +19,7 @@ constexpr auto json_content_type = "application/json";
 void configure(httplib::Client& http) {
     http.set_connection_timeout(2, 0);
     http.set_read_timeout(60, 0);
+    http.set_keep_alive(true);
 }
 
 void expect_ok(const httplib::Result& res, const std::string& action) {
@@ -29,48 +32,38 @@ void expect_ok(const httplib::Result& res, const std::string& action) {
 }
 
 std::string base64_encode(std::span<const std::byte> data) {
-    static constexpr char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    base64_encodestate state;
+    base64_init_encodestate(&state);
 
-    std::string out;
-    out.reserve((data.size() + 2) / 3 * 4);
-    for (std::size_t i = 0; i < data.size(); i += 3) {
-        const bool has_second = i + 1 < data.size();
-        const bool has_third = i + 2 < data.size();
-        const unsigned b0 = std::to_integer<unsigned>(data[i]);
-        const unsigned b1 = has_second ? std::to_integer<unsigned>(data[i + 1]) : 0u;
-        const unsigned b2 = has_third ? std::to_integer<unsigned>(data[i + 2]) : 0u;
-        const unsigned triple = (b0 << 16) | (b1 << 8) | b2;
-
-        out.push_back(alphabet[(triple >> 18) & 0x3F]);
-        out.push_back(alphabet[(triple >> 12) & 0x3F]);
-        out.push_back(has_second ? alphabet[(triple >> 6) & 0x3F] : '=');
-        out.push_back(has_third ? alphabet[triple & 0x3F] : '=');
-    }
+    std::string out(base64_encode_length(data.size(), &state), '\0');
+    std::size_t written = base64_encode_block(data.data(), data.size(), out.data(), &state);
+    written += base64_encode_blockend(out.data() + written, &state);
+    out.resize(written);
     return out;
 }
 
 } // namespace
 
 ElasticsearchSearchClient::ElasticsearchSearchClient(std::string host, int port, std::string index_name)
-    : host(std::move(host)), port(port), index_name(std::move(index_name)) {
+    : http(std::make_unique<httplib::Client>(host, port)), index_name(std::move(index_name)) {
+    configure(*http);
     wait_until_ready();
     ensure_pipeline();
     ensure_index();
 }
 
+ElasticsearchSearchClient::~ElasticsearchSearchClient() = default;
+
 void ElasticsearchSearchClient::wait_until_ready() {
     constexpr int max_attempts = 30;
     for (int attempt = 0; attempt < max_attempts; ++attempt) {
-        httplib::Client http(host, port);
-        configure(http);
-
-        auto res = http.Get("/_cluster/health?wait_for_status=yellow&timeout=30s");
+        auto res = http->Get("/_cluster/health?wait_for_status=yellow&timeout=30s");
         if (res && res->status == 200) {
             return;
         }
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    throw std::runtime_error("Elasticsearch at " + host + ":" + std::to_string(port) + " did not become ready");
+    throw std::runtime_error("Elasticsearch at " + http->host() + ":" + std::to_string(http->port()) + " did not become ready");
 }
 
 void ElasticsearchSearchClient::ensure_pipeline() {
@@ -82,9 +75,7 @@ void ElasticsearchSearchClient::ensure_pipeline() {
         ]
     })");
 
-    httplib::Client http(host, port);
-    configure(http);
-    expect_ok(http.Put(std::string("/_ingest/pipeline/") + pipeline_id, pipeline.dump(), json_content_type),
+    expect_ok(http->Put(std::string("/_ingest/pipeline/") + pipeline_id, pipeline.dump(), json_content_type),
               "create ingest pipeline");
 }
 
@@ -98,9 +89,7 @@ void ElasticsearchSearchClient::ensure_index() {
     })");
     index["settings"]["index.default_pipeline"] = pipeline_id;
 
-    httplib::Client http(host, port);
-    configure(http);
-    auto res = http.Put("/" + index_name, index.dump(), json_content_type);
+    auto res = http->Put("/" + index_name, index.dump(), json_content_type);
 
     const bool already_exists = res && res->status == 400 &&
                                 res->body.find("resource_already_exists_exception") != std::string::npos;
@@ -114,11 +103,8 @@ void ElasticsearchSearchClient::index_document(int id, std::span<const std::byte
     nlohmann::json body;
     body["data"] = base64_encode(content);
 
-    httplib::Client http(host, port);
-    configure(http);
-
     const auto path = "/" + index_name + "/_doc/" + std::to_string(id) + "?refresh=true";
-    expect_ok(http.Put(path, body.dump(), json_content_type), "index document " + std::to_string(id));
+    expect_ok(http->Put(path, body.dump(), json_content_type), "index document " + std::to_string(id));
 }
 
 std::unordered_set<int> ElasticsearchSearchClient::query(std::string input) {
@@ -127,9 +113,7 @@ std::unordered_set<int> ElasticsearchSearchClient::query(std::string input) {
     body["_source"] = false;
     body["size"] = 10000;
 
-    httplib::Client http(host, port);
-    configure(http);
-    auto res = http.Post("/" + index_name + "/_search", body.dump(), json_content_type);
+    auto res = http->Post("/" + index_name + "/_search", body.dump(), json_content_type);
     expect_ok(res, "search");
 
     const auto response = nlohmann::json::parse(res->body);
@@ -138,6 +122,47 @@ std::unordered_set<int> ElasticsearchSearchClient::query(std::string input) {
         ids.insert(std::stoi(hit.at("_id").get<std::string>()));
     }
     return ids;
+}
+
+std::vector<std::string> ElasticsearchSearchClient::get_tokens() {
+    nlohmann::json list_all;
+    list_all["query"]["match_all"] = nlohmann::json::object();
+    list_all["_source"] = false;
+    list_all["size"] = 10000;
+    auto listed = http->Post("/" + index_name + "/_search", list_all.dump(), json_content_type);
+    expect_ok(listed, "list documents");
+
+    const auto listing = nlohmann::json::parse(listed->body);
+    auto ids = nlohmann::json::array();
+    for (const auto& hit : listing.at("hits").at("hits")) {
+        ids.push_back(hit.at("_id"));
+    }
+    if (ids.empty()) {
+        return {};
+    }
+
+    nlohmann::json request;
+    request["ids"] = ids;
+    request["parameters"]["fields"] = nlohmann::json::array({"attachment.content"});
+    request["parameters"]["positions"] = false;
+    request["parameters"]["offsets"] = false;
+    request["parameters"]["payloads"] = false;
+    request["parameters"]["field_statistics"] = false;
+    auto vectors = http->Post("/" + index_name + "/_mtermvectors", request.dump(), json_content_type);
+    expect_ok(vectors, "read term vectors");
+
+    const auto response = nlohmann::json::parse(vectors->body);
+    std::set<std::string> tokens;
+    for (  auto& doc : response.at("docs")) {
+        if (!doc.value("found", false) || !doc.contains("term_vectors") ||
+            !doc.at("term_vectors").contains("attachment.content")) {
+            continue;
+        }
+        for (const auto& term : doc.at("term_vectors").at("attachment.content").at("terms").items()) {
+            tokens.insert(term.key());
+        }
+    }
+    return {tokens.begin(), tokens.end()};
 }
 
 } // namespace matf::verification::metamorphic_testing::clients
