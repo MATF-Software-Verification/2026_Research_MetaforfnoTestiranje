@@ -6,7 +6,7 @@ namespace matf::verification::metamorphic_testing::clients {
 
 class DummySearchClient : public SearchEngineClient {
 public:
-    void index_document() override;
+    void index_document(int id, std::span<const std::byte> content) override;
     std::unordered_set<int> query(std::string input) override;
 };
 
