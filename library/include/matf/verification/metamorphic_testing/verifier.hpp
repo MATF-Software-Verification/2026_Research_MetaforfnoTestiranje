@@ -3,7 +3,8 @@
 #include <matf/verification/metamorphic_testing/clients/search_engine_client.hpp>
 #include <matf/verification/metamorphic_testing/relations/metamorphic_relation.hpp>
 
-#include <iostream>
+#include <spdlog/spdlog.h>
+
 #include <string>
 
 namespace matf::verification::metamorphic_testing {
@@ -18,7 +19,7 @@ public:
         auto original_result = client.query(input);
 
         auto relation_holds = relation.holds(original_result, new_result);
-        std::cout << "result: " << relation_holds << std::endl;
+        spdlog::info("result: {}", relation_holds);
     }
 
 private:

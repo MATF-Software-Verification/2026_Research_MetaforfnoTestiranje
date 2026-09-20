@@ -19,6 +19,8 @@ class MetamorfnoTestiranjeConan(ConanFile):
         self.requires("nlohmann_json/3.12.0")
         self.requires("qpdf/12.3.2")
         self.requires("b64/2.0.0.1")
+        self.requires("fmt/12.1.0")
+        self.requires("spdlog/1.17.0")
 
     def build(self):
         cmake = CMake(self)
