@@ -50,7 +50,7 @@ ElasticsearchSearchClient::ElasticsearchSearchClient(std::string host, int port,
     configure(*http);
     wait_until_ready();
     ensure_pipeline();
-    ensure_index();
+    recreate_index();
 }
 
 ElasticsearchSearchClient::~ElasticsearchSearchClient() = default;
@@ -81,7 +81,12 @@ void ElasticsearchSearchClient::ensure_pipeline() {
               "create ingest pipeline");
 }
 
-void ElasticsearchSearchClient::ensure_index() {
+void ElasticsearchSearchClient::recreate_index() {
+    auto deleted = http->Delete("/" + index_name);
+    if (!deleted || deleted->status != 404) {
+        expect_ok(deleted, "delete index '" + index_name + "'");
+    }
+
     auto index = nlohmann::json::parse(R"({
         "mappings": {
             "properties": {
@@ -91,14 +96,7 @@ void ElasticsearchSearchClient::ensure_index() {
     })");
     index["settings"]["index.default_pipeline"] = pipeline_id;
 
-    auto res = http->Put("/" + index_name, index.dump(), json_content_type);
-
-    const bool already_exists =
-        res && res->status == 400 && res->body.find("resource_already_exists_exception") != std::string::npos;
-    if (already_exists) {
-        return;
-    }
-    expect_ok(res, "create index '" + index_name + "'");
+    expect_ok(http->Put("/" + index_name, index.dump(), json_content_type), "create index '" + index_name + "'");
 }
 
 void ElasticsearchSearchClient::index_document(int id, std::span<const std::byte> content) {
