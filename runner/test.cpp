@@ -3,9 +3,13 @@
 #include <matf/verification/metamorphic_testing/relations/capitalization_irrelevance.hpp>
 #include <matf/verification/metamorphic_testing/verifier.hpp>
 
+#include <fmt/base.h>
+#include <fmt/ranges.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
+
 #include <exception>
 #include <fstream>
-#include <iostream>
 #include <iterator>
 #include <set>
 #include <span>
@@ -16,14 +20,17 @@
 namespace mt = matf::verification::metamorphic_testing;
 
 int main(int argc, char** argv) {
+    // Diagnostics go to stderr so that stdout carries only the results.
+    spdlog::set_default_logger(spdlog::stderr_color_mt("test_run"));
+
     if (argc != 3) {
-        std::cerr << "usage: " << argv[0] << " <file.pdf> <query>\n";
+        fmt::print(stderr, "usage: {} <file.pdf> <query>\n", argv[0]);
         return 1;
     }
 
     std::ifstream file(argv[1], std::ios::binary);
     if (!file) {
-        std::cerr << "cannot open " << argv[1] << "\n";
+        spdlog::error("cannot open {}", argv[1]);
         return 1;
     }
     const std::vector<char> raw((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -35,7 +42,7 @@ int main(int argc, char** argv) {
         for (int i = 0; i < pages.size(); ++i) {
             client.index_document((i + 1), pages[i]);
         }
-        std::cout << "indexed " << pages.size() << " pages\n";
+        spdlog::info("indexed {} pages", pages.size());
 
         const auto tokens = client.get_tokens();
 
@@ -47,20 +54,17 @@ int main(int argc, char** argv) {
         for (const auto& token : tokens) {
             tokens_file << token << "\n";
         }
-        std::cout << "wrote " << tokens.size() << " tokens to " << tokens_path << "\n";
+        spdlog::info("wrote {} tokens to {}", tokens.size(), tokens_path);
 
         const auto matches = client.query(argv[2]);
-        std::cout << "pages matching '" << argv[2] << "':";
-        for (int page : std::set<int>(matches.begin(), matches.end())) {
-            std::cout << " " << page;
-        }
-        std::cout << std::endl;
+        const std::set<int> sorted_matches(matches.begin(), matches.end());
+        fmt::print("pages matching '{}': {}\n", argv[2], fmt::join(sorted_matches, " "));
 
         mt::relations::CapitalizationIrrelevance relation;
         mt::Verifier verifier(client);
         verifier.verify_relation(argv[2], relation);
     } catch (const std::exception& e) {
-        std::cerr << "error: " << e.what() << "\n";
+        spdlog::error("{}", e.what());
         return 1;
     }
 }
