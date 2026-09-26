@@ -2,6 +2,10 @@
 #include <matf/verification/metamorphic_testing/pdf/pdf_splitter.hpp>
 #include <matf/verification/metamorphic_testing/relations/capitalization_irrelevance.hpp>
 #include <matf/verification/metamorphic_testing/relations/duplicate_term_irrelevance.hpp>
+#include <matf/verification/metamorphic_testing/relations/input_permutation.hpp>
+#include <matf/verification/metamorphic_testing/relations/invalid_term_irrelevance.hpp>
+#include <matf/verification/metamorphic_testing/relations/invalid_term_relevance.hpp>
+#include <matf/verification/metamorphic_testing/relations/multiple_term_reduction.hpp>
 #include <matf/verification/metamorphic_testing/relations/term_addition_monotonicity.hpp>
 #include <matf/verification/metamorphic_testing/relations/whitespace_punctuation_irrelevance.hpp>
 #include <matf/verification/metamorphic_testing/token_generator.hpp>
@@ -78,6 +82,10 @@ int main(int argc, char** argv) {
             std::make_unique<mt::relations::WhitespacePunctuationIrrelevance>(token_generator),
             std::make_unique<mt::relations::TermAdditionMonotonicity>(token_generator),
             std::make_unique<mt::relations::DuplicateTermIrrelevance>(token_generator),
+            std::make_unique<mt::relations::MultipleTermReduction>(token_generator),
+            std::make_unique<mt::relations::InputPermutation>(token_generator),
+            std::make_unique<mt::relations::InvalidTermIrrelevance>(token_generator),
+            std::make_unique<mt::relations::InvalidTermRelevance>(token_generator),
         };
 
         for (const auto& relation : relations) {
