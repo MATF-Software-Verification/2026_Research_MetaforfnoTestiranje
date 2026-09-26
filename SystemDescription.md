@@ -2,8 +2,8 @@
 
 ## Autori
 
-- Đorđe Marić
-- Lazar Cvijić
+- Đorđe Marić 1020/2025
+- Lazar Cvijić 1030/2025
 
 ## Opis problema
 
@@ -51,7 +51,6 @@ Projekat se sastoji od biblioteke (`library/`) i malog izvršnog programa koji j
 |---|---|---|
 | Klijenti pretraživača | `clients/search_engine_client.hpp` | Apstraktni interfejs sistema koji se testira: `index_document(id, bytes)` i `query(text, operator) → set<int>`. |
 | | `clients/elasticsearch_search_client.{hpp,cpp}` | Pravi klijent. Komunicira sa Elasticsearch-om preko HTTP-a (**cpp-httplib**, **nlohmann_json**, **b64**). |
-| | `clients/dummy_search_client.{hpp,cpp}` | Zamena koja samo beleži pozive i uvek vraća `{1}`. Omogućava pokretanje verifikatora i relacija bez pravog pretraživača. |
 | Operator upita | `query_operator.hpp` | `enum class QueryOperator { Or, And }`, preslikava se na operator Elasticsearch `match` upita. |
 | Generator tokena | `token_generator.{hpp,cpp}` | Čuva rečnik korpusa i `std::mt19937` inicijalizovan semenom. Vraća nasumične validne tokene i nasumične *nevalidne* tokene za koje je garantovano da nisu u rečniku. |
 | Metamorfne relacije | `relations/metamorphic_relation.hpp` | Bazna klasa. Relacija određuje kako se generiše polazni ulaz, kako se menja, koji operator upita se koristi i kada relacija važi. |
@@ -76,8 +75,7 @@ Ostale operacije:
 
 - `index_document` šalje stranu kodiranu u base64 i koristi `?refresh=true`, tako da je dokument pretraživ čim
   se poziv završi.
-- `query` šalje `match` upit nad poljem `attachment.content` sa izabranim operatorom. Ne traži `_source`, traži
-  najviše 10000 pogodaka i vraća skup identifikatora dokumenata.
+- `query` šalje `match` upit nad poljem `attachment.content` sa izabranim operatorom.
 - `get_tokens` prvo izlista sve identifikatore dokumenata, a zatim pomoću `_mtermvectors` čita njihove vektore
   termova. Vraća sortiranu uniju svih termova.
 
@@ -156,17 +154,3 @@ ispisuje, pa pokretanje sa `--seed N` nad istim PDF-om tačno ponavlja izvršava
 **Čisto stanje pri svakom pokretanju.** Indeks se briše i ponovo pravi, a svaki dokument se indeksira sa
 `refresh=true`. Rezultat testa zato nikada ne zavisi od podataka iz prethodnog pokretanja niti od intervala
 osvežavanja Elasticsearch-a.
-
-**Projektovano za testiranje.** Verifikator i relacije zavise samo od `SearchEngineClient` i `TokenGenerator`
-(koji se može napraviti od liste tokena u memoriji). `DummySearchClient` zamenjuje pretraživač, pa se logika može
-proveravati bez Docker-a.
-
-### Ograničenja
-
-- Svaka relacija se u jednom pokretanju proverava sa **jednim** nasumično generisanim ulazom. Za veću pokrivenost
-  alat treba pokrenuti više puta sa različitim semenima.
-- `capitalization_irrelevance` koristi `std::toupper`/`std::tolower`, koji menjaju samo ASCII slova. Srpska slova
-  poput `č`, `ž` i `đ` ostaju nepromenjena.
-- Broj rezultata je ograničen na 10000 pogodaka po upitu, što je daleko više od broja strana bilo kog realnog
-  ulaznog PDF-a.
-- Testiraju se samo `match` upiti nad jednim tekstualnim poljem sa podrazumevanim analizatorom.

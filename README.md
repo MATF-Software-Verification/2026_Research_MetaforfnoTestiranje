@@ -1,5 +1,7 @@
 # 2026_Research_MetaforfnoTestiranje
 
+Metamorphic testing of a search engine: indexes a PDF page by page and checks that search results satisfy a set of metamorphic relations. See [SystemDescription.md](SystemDescription.md) for details.
+
 ## Build requirements
 
 | Tool | Version |
@@ -7,12 +9,13 @@
 | CMake | 4.2 or newer |
 | Conan | 2.0 or newer |
 | Ninja | any recent |
-| Clang | 22 (tested) |
-| clang-format | 16 or newer, tested with 22 (formatting only) |
+| Clang | C++20 support |
+| Docker| version? |
+| clang-format | 16+ |
 
 ## Build
 
-Install dependencies:
+Dependencies are managed by conan. Install dependencies:
 
 ```sh
 conan install . -pr:a profiles/linux-clang-debug --build=missing
@@ -38,11 +41,38 @@ Index a PDF and test relations:
 ```sh
 ./build/Debug/runner/test_run <file.pdf> [--seed <n>]
 ```
-Output will look like:
+
+Any PDF works as input. Each page is indexed as a separate document, so PDFs with more pages give more meaningful results. The vocabulary of the indexed PDF is written to `tokens.txt` in the current directory, and queries are built from it. If `--seed` is omitted, a random seed is used. The seed is always printed, so passing it back with `--seed` repeats the run exactly.
+
+Example:
+
+```sh
+./build/Debug/runner/test_run verifikacija_softvera.pdf --seed 42
+```
+
 ```text
+[2026-09-26 20:16:42.635] [test_run] [info] seed: 42
+[2026-09-26 20:16:54.868] [test_run] [info] indexed 411 pages
+[2026-09-26 20:16:55.568] [test_run] [info] wrote 13777 tokens to tokens.txt
+[2026-09-26 20:16:55.571] [test_run] [info] Checking if capitalization_irrelevance holds for original: "x" and modified: "X" (operator or)
+[2026-09-26 20:16:55.584] [test_run] [info] result: true
+[2026-09-26 20:16:55.589] [test_run] [info] Checking if term_addition_monotonicity holds for original: "x" and modified: "x y" (operator or)
+[2026-09-26 20:16:55.594] [test_run] [info] result: true
+[2026-09-26 20:16:55.609] [test_run] [info] Checking if input_permutation holds for original: "x y" and modified: "y x" (operator and)
+[2026-09-26 20:16:55.613] [test_run] [info] result: true
+[2026-09-26 20:16:55.617] [test_run] [info] Checking if invalid_term_relevance holds for original: "x" and modified: "x invalid" (operator and)
+[2026-09-26 20:16:55.622] [test_run] [info] result: true
+...
 SUCCESS: all 8 relations hold (seed 42)
+```
+
+Log lines go to stderr. The final summary goes to stdout. When one or more relations fail, the summary names them:
+
+```text
 FAILURE: 2 of 8 relations failed (seed 42): input_permutation, multiple_term_reduction
 ```
+
+The exit code is `0` if all relations hold, and `1` if any relation fails or an error occurs.
 
 ## VS Code setup
 
@@ -74,3 +104,8 @@ Format specific files:
 ```
 
 The script picks the first `clang-format` it finds on `PATH`. Override it with `CLANG_FORMAT=/path/to/clang-format`.
+
+## Authors
+
+- Đorđe Marić 1020/2025
+- Lazar Cvijić 1030/2025
