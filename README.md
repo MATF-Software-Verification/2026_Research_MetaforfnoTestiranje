@@ -21,7 +21,7 @@ Dependencies are managed by conan. Install dependencies:
 conan install . -pr:a profiles/linux-clang-release --build=missing
 ```
 
-Use the profile that matches your platform and build type. Profiles are in `profiles/`: `linux-clang-debug`, `linux-clang-release`, `macos-arm-debug`, `macos-arm-release`. With a debug profile, use the `conan-debug` preset below, and the binary ends up in `build/Debug/`.
+Use the profile that matches your platform and build type. Profiles are in `profiles/`
 
 Build:
 
