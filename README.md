@@ -10,7 +10,7 @@ Metamorphic testing of a search engine: indexes a PDF page by page and checks th
 | Conan | 2.0 or newer |
 | Ninja | any recent |
 | Clang | C++20 support |
-| Docker| version? |
+| Docker| any recent |
 | clang-format | 16+ |
 
 ## Build
@@ -47,13 +47,13 @@ Any PDF works as input. Each page is indexed as a separate document, so PDFs wit
 Example:
 
 ```sh
-./build/Debug/runner/test_run verifikacija_softvera.pdf --seed 42
+./build/Debug/runner/test_run my_pdf.pdf --seed 42
 ```
 
 ```text
 [2026-09-26 20:16:42.635] [test_run] [info] seed: 42
-[2026-09-26 20:16:54.868] [test_run] [info] indexed 411 pages
-[2026-09-26 20:16:55.568] [test_run] [info] wrote 13777 tokens to tokens.txt
+[2026-09-26 20:16:54.868] [test_run] [info] indexed N pages
+[2026-09-26 20:16:55.568] [test_run] [info] wrote M tokens to tokens.txt
 [2026-09-26 20:16:55.571] [test_run] [info] Checking if capitalization_irrelevance holds for original: "x" and modified: "X" (operator or)
 [2026-09-26 20:16:55.584] [test_run] [info] result: true
 [2026-09-26 20:16:55.589] [test_run] [info] Checking if term_addition_monotonicity holds for original: "x" and modified: "x y" (operator or)
