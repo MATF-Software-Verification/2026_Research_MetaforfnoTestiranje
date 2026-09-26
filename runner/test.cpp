@@ -1,6 +1,9 @@
 #include <matf/verification/metamorphic_testing/clients/elasticsearch_search_client.hpp>
 #include <matf/verification/metamorphic_testing/pdf/pdf_splitter.hpp>
 #include <matf/verification/metamorphic_testing/relations/capitalization_irrelevance.hpp>
+#include <matf/verification/metamorphic_testing/relations/duplicate_term_irrelevance.hpp>
+#include <matf/verification/metamorphic_testing/relations/term_addition_monotonicity.hpp>
+#include <matf/verification/metamorphic_testing/relations/whitespace_punctuation_irrelevance.hpp>
 #include <matf/verification/metamorphic_testing/token_generator.hpp>
 #include <matf/verification/metamorphic_testing/verifier.hpp>
 
@@ -12,6 +15,7 @@
 #include <exception>
 #include <fstream>
 #include <iterator>
+#include <memory>
 #include <set>
 #include <span>
 #include <stdexcept>
@@ -67,10 +71,18 @@ int main(int argc, char** argv) {
         write_tokens(client);
 
         mt::TokenGenerator token_generator(TOKENS_FILE_PATH);
-        mt::relations::CapitalizationIrrelevance relation(token_generator);
         mt::Verifier verifier(client);
 
-        verifier.verify_relation(token_generator.get_random_token(), relation);
+        std::unique_ptr<mt::relations::MetamorphicRelation> relations[] = {
+            std::make_unique<mt::relations::CapitalizationIrrelevance>(token_generator),
+            std::make_unique<mt::relations::WhitespacePunctuationIrrelevance>(token_generator),
+            std::make_unique<mt::relations::TermAdditionMonotonicity>(token_generator),
+            std::make_unique<mt::relations::DuplicateTermIrrelevance>(token_generator),
+        };
+
+        for (const auto& relation : relations) {
+            verifier.verify_relation(token_generator.get_random_token(), *relation);
+        }
     } catch (const std::exception& e) {
         spdlog::error("{}", e.what());
         return 1;
