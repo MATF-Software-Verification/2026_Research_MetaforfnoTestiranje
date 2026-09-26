@@ -18,14 +18,16 @@ Metamorphic testing of a search engine: indexes a PDF page by page and checks th
 Dependencies are managed by conan. Install dependencies:
 
 ```sh
-conan install . -pr:a profiles/linux-clang-debug --build=missing
+conan install . -pr:a profiles/linux-clang-release --build=missing
 ```
+
+Use the profile that matches your platform and build type. Profiles are in `profiles/`: `linux-clang-debug`, `linux-clang-release`, `macos-arm-debug`, `macos-arm-release`. With a debug profile, use the `conan-debug` preset below, and the binary ends up in `build/Debug/`.
 
 Build:
 
 ```sh
-cmake --preset conan-debug
-cmake --build --preset conan-debug
+cmake --preset conan-release
+cmake --build --preset conan-release
 ```
 
 ## Run
@@ -39,7 +41,7 @@ docker compose up -d
 Index a PDF and test relations:
 
 ```sh
-./build/Debug/runner/test_run <file.pdf> [--seed <n>]
+./build/Release/runner/test_run <file.pdf> [--seed <n>]
 ```
 
 Any PDF works as input. Each page is indexed as a separate document, so PDFs with more pages give more meaningful results. The vocabulary of the indexed PDF is written to `tokens.txt` in the current directory, and queries are built from it. If `--seed` is omitted, a random seed is used. The seed is always printed, so passing it back with `--seed` repeats the run exactly.
@@ -47,7 +49,7 @@ Any PDF works as input. Each page is indexed as a separate document, so PDFs wit
 Example:
 
 ```sh
-./build/Debug/runner/test_run my_pdf.pdf --seed 42
+./build/Release/runner/test_run my_pdf.pdf --seed 42
 ```
 
 ```text
@@ -80,7 +82,7 @@ Install the CMake Tools and C/C++ extensions. Then:
 
 1. Run `conan install` as shown above. This creates the presets.
 2. Open the project folder.
-3. Pick the `conan-debug` preset when VS Code asks.
+3. Pick the `conan-release` (or `conan-debug`) preset when VS Code asks.
 4. Press F7 to build.
 
 ## Formatting
