@@ -36,7 +36,7 @@ docker compose up -d
 Index a PDF and test relations:
 
 ```sh
-./build/Debug/runner/test_run [--seed <n>] <file.pdf>
+./build/Debug/runner/test_run <file.pdf> [--seed <n>]
 ```
 Output will look like:
 ```text
