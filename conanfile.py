@@ -22,6 +22,9 @@ class MetamorfnoTestiranjeConan(ConanFile):
         self.requires("fmt/12.1.0")
         self.requires("spdlog/1.17.0")
 
+    def build_requirements(self):
+        self.test_requires("catch2/3.16.0")
+
     def build(self):
         cmake = CMake(self)
         cmake.configure()

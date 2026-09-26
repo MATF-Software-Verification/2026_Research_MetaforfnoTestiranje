@@ -44,6 +44,24 @@ SUCCESS: all 8 relations hold (seed 42)
 FAILURE: 2 of 8 relations failed (seed 42): input_permutation, multiple_term_reduction
 ```
 
+## Tests
+
+Unit tests cover the engine-independent core (relations, token generation, the verifier) and need no Elasticsearch.
+They use [Catch2](https://github.com/catchorg/Catch2), which `conan install` fetches.
+
+```sh
+cmake --build --preset conan-debug
+ctest --preset conan-debug
+```
+
+Or run the test binary directly, optionally filtered by tag:
+
+```sh
+./build/Debug/tests/unit_tests "[relations]"
+```
+
+Pass `-DMETAMORPHIC_TESTING_BUILD_TESTS=OFF` to skip building them.
+
 ## VS Code setup
 
 Install the CMake Tools and C/C++ extensions. Then:
