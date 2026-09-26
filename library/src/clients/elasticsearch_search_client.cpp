@@ -107,9 +107,10 @@ void ElasticsearchSearchClient::index_document(int id, std::span<const std::byte
     expect_ok(http->Put(path, body.dump(), json_content_type), "index document " + std::to_string(id));
 }
 
-std::unordered_set<int> ElasticsearchSearchClient::query(std::string input) {
+std::unordered_set<int> ElasticsearchSearchClient::query(std::string input, QueryOperator op) {
     nlohmann::json body;
-    body["query"]["match"]["attachment.content"] = input;
+    body["query"]["match"]["attachment.content"]["query"] = input;
+    body["query"]["match"]["attachment.content"]["operator"] = to_string(op);
     body["_source"] = false;
     body["size"] = 10000;
 

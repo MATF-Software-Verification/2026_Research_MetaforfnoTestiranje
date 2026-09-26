@@ -18,7 +18,7 @@ public:
     ~ElasticsearchSearchClient() override;
 
     void index_document(int id, std::span<const std::byte> content) override;
-    std::unordered_set<int> query(std::string input) override;
+    std::unordered_set<int> query(std::string input, QueryOperator op) override;
     std::vector<std::string> get_tokens();
 
 private:

@@ -8,8 +8,8 @@ void DummySearchClient::index_document(int id, std::span<const std::byte> conten
     spdlog::info("indexed document {} ({} bytes)", id, content.size());
 }
 
-std::unordered_set<int> DummySearchClient::query(std::string input) {
-    spdlog::info("querying for input {}", input);
+std::unordered_set<int> DummySearchClient::query(std::string input, QueryOperator op) {
+    spdlog::info("querying for input {} (operator {})", input, to_string(op));
     return {1};
 }
 } // namespace matf::verification::metamorphic_testing::clients
