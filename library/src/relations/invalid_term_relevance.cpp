@@ -7,7 +7,7 @@ std::string InvalidTermRelevance::mutate_input(std::string input) {
 }
 
 // Under AND every term must match, and the invalid term matches no document.
-bool InvalidTermRelevance::holds(std::unordered_set<int>& /*original*/, std::unordered_set<int>& modified) {
+bool InvalidTermRelevance::holds(const std::unordered_set<int>& /*original*/, const std::unordered_set<int>& modified) {
     return modified.empty();
 }
 } // namespace matf::verification::metamorphic_testing::relations

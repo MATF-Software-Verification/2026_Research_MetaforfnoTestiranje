@@ -11,7 +11,7 @@ namespace matf::verification::metamorphic_testing {
 class Verifier {
 public:
     Verifier(clients::SearchEngineClient& client) : client(client) {};
-    void verify_relation(relations::MetamorphicRelation& relation) {
+    bool verify_relation(relations::MetamorphicRelation& relation) {
         const auto input = relation.generate_input();
         const auto modified_input = relation.mutate_input(input);
         const auto op = relation.get_operator();
@@ -23,6 +23,7 @@ public:
 
         auto relation_holds = relation.holds(original_result, new_result);
         spdlog::info("result: {}", relation_holds);
+        return relation_holds;
     }
 
 private:

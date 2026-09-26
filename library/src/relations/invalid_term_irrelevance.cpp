@@ -6,7 +6,7 @@ std::string InvalidTermIrrelevance::mutate_input(std::string input) {
     return input + " " + token_generator.get_invalid_token();
 }
 
-bool InvalidTermIrrelevance::holds(std::unordered_set<int>& original, std::unordered_set<int>& modified) {
+bool InvalidTermIrrelevance::holds(const std::unordered_set<int>& original, const std::unordered_set<int>& modified) {
     return original == modified;
 }
 } // namespace matf::verification::metamorphic_testing::relations

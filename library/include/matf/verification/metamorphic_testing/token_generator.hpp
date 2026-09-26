@@ -1,16 +1,22 @@
 #pragma once
+#include <cstdint>
+#include <random>
 #include <string>
 #include <vector>
 namespace matf::verification::metamorphic_testing {
 class TokenGenerator {
 public:
-    explicit TokenGenerator(std::string file_path);
+    TokenGenerator(std::vector<std::string> tokens, std::uint32_t seed);
+    static TokenGenerator from_file(const std::string& file_path, std::uint32_t seed);
+
     std::string get_random_token();
-    // Random token guaranteed not to appear in the token file.
     std::string get_invalid_token();
+    std::mt19937& engine() {
+        return gen;
+    }
 
 private:
-    std::string token_file_path;
     std::vector<std::string> tokens;
+    std::mt19937 gen;
 };
 } // namespace matf::verification::metamorphic_testing

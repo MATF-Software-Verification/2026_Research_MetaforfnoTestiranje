@@ -14,7 +14,7 @@ public:
         return token_generator.get_random_token();
     };
     virtual std::string mutate_input(std::string input) = 0;
-    virtual bool holds(std::unordered_set<int>& original, std::unordered_set<int>& modified) = 0;
+    virtual bool holds(const std::unordered_set<int>& original, const std::unordered_set<int>& modified) = 0;
     virtual ~MetamorphicRelation() = default;
     constexpr virtual std::string get_name() const = 0;
     constexpr virtual QueryOperator get_operator() const {

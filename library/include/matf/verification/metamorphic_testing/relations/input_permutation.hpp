@@ -10,7 +10,7 @@ public:
     std::string generate_input() override;
     std::string mutate_input(std::string input) override;
 
-    bool holds(std::unordered_set<int>& original, std::unordered_set<int>& modified) override;
+    bool holds(const std::unordered_set<int>& original, const std::unordered_set<int>& modified) override;
 
     constexpr std::string get_name() const override {
         return "input_permutation";

@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <fstream>
-#include <random>
 #include <stdexcept>
 #include <utility>
 
@@ -29,17 +28,25 @@ std::vector<std::string> read_tokens(const std::string& path) {
 
 } // namespace
 
-matf::verification::metamorphic_testing::TokenGenerator::TokenGenerator(std::string file_path)
-    : token_file_path(std::move(file_path)), tokens(read_tokens(token_file_path)) {}
+matf::verification::metamorphic_testing::TokenGenerator::TokenGenerator(std::vector<std::string> tokens,
+                                                                        std::uint32_t seed)
+    : tokens(std::move(tokens)), gen(seed) {
+    if (this->tokens.empty()) {
+        throw std::invalid_argument("token list is empty");
+    }
+}
+
+matf::verification::metamorphic_testing::TokenGenerator
+matf::verification::metamorphic_testing::TokenGenerator::from_file(const std::string& file_path, std::uint32_t seed) {
+    return TokenGenerator(read_tokens(file_path), seed);
+}
 
 std::string matf::verification::metamorphic_testing::TokenGenerator::get_random_token() {
-    static std::mt19937 gen{std::random_device{}()};
     std::uniform_int_distribution<std::size_t> dist(0, tokens.size() - 1);
     return tokens[dist(gen)];
 }
 
 std::string matf::verification::metamorphic_testing::TokenGenerator::get_invalid_token() {
-    static std::mt19937 gen{std::random_device{}()};
     constexpr std::string_view alphabet = "abcdefghijklmnopqrstuvwxyz";
     constexpr std::size_t length = 12;
     std::uniform_int_distribution<std::size_t> dist(0, alphabet.size() - 1);
