@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
         };
 
         for (const auto& relation : relations) {
-            verifier.verify_relation(token_generator.get_random_token(), *relation);
+            verifier.verify_relation(*relation);
         }
     } catch (const std::exception& e) {
         spdlog::error("{}", e.what());
