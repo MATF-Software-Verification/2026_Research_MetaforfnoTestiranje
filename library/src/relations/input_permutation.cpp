@@ -13,7 +13,7 @@ std::string InputPermutation::mutate_input(std::string input) {
     return input;
 }
 
-bool InputPermutation::holds(std::unordered_set<int>& original, std::unordered_set<int>& modified) {
+bool InputPermutation::holds(const std::unordered_set<int>& original, const std::unordered_set<int>& modified) {
     return original == modified;
 }
 

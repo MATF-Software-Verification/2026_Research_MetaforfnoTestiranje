@@ -9,7 +9,7 @@ std::string MultipleTermReduction::mutate_input(std::string input) {
     return input.substr(0, input.find(' '));
 }
 
-bool MultipleTermReduction::holds(std::unordered_set<int>& original, std::unordered_set<int>& modified) {
+bool MultipleTermReduction::holds(const std::unordered_set<int>& original, const std::unordered_set<int>& modified) {
     return std::all_of(original.begin(), original.end(), [&modified](int id) { return modified.contains(id); });
 }
 

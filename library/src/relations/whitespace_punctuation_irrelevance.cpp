@@ -17,13 +17,7 @@ const std::vector<std::pair<std::string, std::string>> wrappers = {
     {"=", ""},    {"%", ""},  {"$", ""},  {"^", ""},  {"~", ""},  {"\\", ""},
 };
 
-std::mt19937& rng() {
-    static std::mt19937 gen{std::random_device{}()};
-    return gen;
-}
-
-template <typename T> const T& pick(const std::vector<T>& options) {
-    static std::mt19937 gen{std::random_device{}()};
+template <typename T> const T& pick(const std::vector<T>& options, std::mt19937& gen) {
     std::uniform_int_distribution<std::size_t> dist(0, options.size() - 1);
     return options[dist(gen)];
 }
@@ -31,12 +25,13 @@ template <typename T> const T& pick(const std::vector<T>& options) {
 } // namespace
 
 std::string WhitespacePunctuationIrrelevance::mutate_input(std::string input) {
-    const auto& [open, close] = pick(wrappers);
+    const auto& [open, close] = pick(wrappers, token_generator.engine());
     input = open + input + close;
-    return pick(paddings) + input + pick(paddings);
+    return pick(paddings, token_generator.engine()) + input + pick(paddings, token_generator.engine());
 }
 
-bool WhitespacePunctuationIrrelevance::holds(std::unordered_set<int>& original, std::unordered_set<int>& modified) {
+bool WhitespacePunctuationIrrelevance::holds(const std::unordered_set<int>& original,
+                                             const std::unordered_set<int>& modified) {
     return original == modified;
 }
 } // namespace matf::verification::metamorphic_testing::relations

@@ -25,6 +25,25 @@ cmake --preset conan-debug
 cmake --build --preset conan-debug
 ```
 
+## Run
+
+Start search engine:
+
+```sh
+docker compose up -d
+```
+
+Index a PDF and test relations:
+
+```sh
+./build/Debug/runner/test_run <file.pdf> [--seed <n>]
+```
+Output will look like:
+```text
+SUCCESS: all 8 relations hold (seed 42)
+FAILURE: 2 of 8 relations failed (seed 42): input_permutation, multiple_term_reduction
+```
+
 ## VS Code setup
 
 Install the CMake Tools and C/C++ extensions. Then:
@@ -54,5 +73,4 @@ Format specific files:
 ./format.sh library/src/pdf/pdf_splitter.cpp
 ```
 
-The script picks the first `clang-format` it finds on `PATH`, falling back to the
-Homebrew LLVM install. Override it with `CLANG_FORMAT=/path/to/clang-format`.
+The script picks the first `clang-format` it finds on `PATH`. Override it with `CLANG_FORMAT=/path/to/clang-format`.

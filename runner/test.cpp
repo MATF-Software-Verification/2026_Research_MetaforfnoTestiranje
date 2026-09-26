@@ -16,11 +16,13 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include <fstream>
 #include <iterator>
 #include <memory>
-#include <set>
+#include <random>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -30,16 +32,16 @@ namespace mt = matf::verification::metamorphic_testing;
 
 namespace {
 constexpr std::string TOKENS_FILE_PATH = "tokens.txt";
-void index_pdf(mt::clients::ElasticsearchSearchClient& client, std::string path) {
+
+void index_pdf(mt::clients::ElasticsearchSearchClient& client, const std::string& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
-        spdlog::error("cannot open {}", path);
-        return;
+        throw std::runtime_error("cannot open " + path);
     }
     const std::vector<char> raw((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     const auto pages = mt::pdf::split_pages(std::as_bytes(std::span(raw)));
-    for (int i = 0; i < pages.size(); ++i) {
-        client.index_document((i + 1), pages[i]);
+    for (std::size_t i = 0; i < pages.size(); ++i) {
+        client.index_document(static_cast<int>(i + 1), pages[i]);
     }
     spdlog::info("indexed {} pages", pages.size());
 }
@@ -57,40 +59,56 @@ void write_tokens(mt::clients::ElasticsearchSearchClient& client) {
     tokens_file.close();
     spdlog::info("wrote {} tokens to {}", tokens.size(), TOKENS_FILE_PATH);
 }
+
+int run(const std::string& pdf_path, std::uint32_t seed) {
+    spdlog::info("seed: {}", seed);
+
+    mt::clients::ElasticsearchSearchClient client;
+    index_pdf(client, pdf_path);
+    write_tokens(client);
+
+    auto token_generator = mt::TokenGenerator::from_file(TOKENS_FILE_PATH, seed);
+    mt::Verifier verifier(client);
+
+    std::unique_ptr<mt::relations::MetamorphicRelation> relations[] = {
+        std::make_unique<mt::relations::CapitalizationIrrelevance>(token_generator),
+        std::make_unique<mt::relations::WhitespacePunctuationIrrelevance>(token_generator),
+        std::make_unique<mt::relations::TermAdditionMonotonicity>(token_generator),
+        std::make_unique<mt::relations::DuplicateTermIrrelevance>(token_generator),
+        std::make_unique<mt::relations::MultipleTermReduction>(token_generator),
+        std::make_unique<mt::relations::InputPermutation>(token_generator),
+        std::make_unique<mt::relations::InvalidTermIrrelevance>(token_generator),
+        std::make_unique<mt::relations::InvalidTermRelevance>(token_generator),
+    };
+
+    std::vector<std::string> failed;
+    for (const auto& relation : relations) {
+        if (!verifier.verify_relation(*relation)) {
+            failed.push_back(relation->get_name());
+        }
+    }
+
+    if (failed.empty()) {
+        fmt::print("SUCCESS: all {} relations hold (seed {})\n", std::size(relations), seed);
+        return 0;
+    }
+    fmt::print("FAILURE: {} of {} relations failed (seed {}): {}\n", failed.size(), std::size(relations), seed,
+               fmt::join(failed, ", "));
+    return 1;
+}
 } // namespace
 
 int main(int argc, char** argv) {
-    // Diagnostics go to stderr so that stdout carries only the results.
     spdlog::set_default_logger(spdlog::stderr_color_mt("test_run"));
 
-    if (argc != 2) {
-        fmt::print(stderr, "usage: {} <file.pdf>\n", argv[0]);
+    if (argc != 2 && !(argc == 4 && std::string(argv[2]) == "--seed")) {
+        fmt::print(stderr, "usage: {} <file.pdf> [--seed <n>]\n", argv[0]);
         return 1;
     }
 
     try {
-        mt::clients::ElasticsearchSearchClient client;
-        index_pdf(client, argv[1]);
-
-        write_tokens(client);
-
-        mt::TokenGenerator token_generator(TOKENS_FILE_PATH);
-        mt::Verifier verifier(client);
-
-        std::unique_ptr<mt::relations::MetamorphicRelation> relations[] = {
-            std::make_unique<mt::relations::CapitalizationIrrelevance>(token_generator),
-            std::make_unique<mt::relations::WhitespacePunctuationIrrelevance>(token_generator),
-            std::make_unique<mt::relations::TermAdditionMonotonicity>(token_generator),
-            std::make_unique<mt::relations::DuplicateTermIrrelevance>(token_generator),
-            std::make_unique<mt::relations::MultipleTermReduction>(token_generator),
-            std::make_unique<mt::relations::InputPermutation>(token_generator),
-            std::make_unique<mt::relations::InvalidTermIrrelevance>(token_generator),
-            std::make_unique<mt::relations::InvalidTermRelevance>(token_generator),
-        };
-
-        for (const auto& relation : relations) {
-            verifier.verify_relation(*relation);
-        }
+        const std::uint32_t seed = argc == 4 ? std::stoul(argv[3]) : std::random_device{}();
+        return run(argv[1], seed);
     } catch (const std::exception& e) {
         spdlog::error("{}", e.what());
         return 1;

@@ -21,7 +21,8 @@ std::string CapitalizationIrrelevance::mutate_input(std::string input) {
                    [lower](unsigned char c) { return static_cast<char>(lower ? std::tolower(c) : std::toupper(c)); });
     return input;
 }
-bool CapitalizationIrrelevance::holds(std::unordered_set<int>& original, std::unordered_set<int>& modified) {
+bool CapitalizationIrrelevance::holds(const std::unordered_set<int>& original,
+                                      const std::unordered_set<int>& modified) {
     return original == modified;
 }
 } // namespace matf::verification::metamorphic_testing::relations
