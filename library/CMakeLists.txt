@@ -13,6 +13,8 @@ add_library(metamorphic_testing
     src/relations/duplicate_term_irrelevance.cpp
     src/relations/term_addition_monotonicity.cpp
     src/relations/whitespace_punctuation_irrelevance.cpp
+    src/relations/multiple_term_reduction.cpp
+    src/relations/input_permutation.cpp
     src/token_generator.cpp
 )
 add_library(matf::metamorphic_testing ALIAS metamorphic_testing)
