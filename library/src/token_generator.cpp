@@ -1,5 +1,6 @@
 #include <matf/verification/metamorphic_testing/token_generator.hpp>
 
+#include <algorithm>
 #include <fstream>
 #include <random>
 #include <stdexcept>
@@ -35,4 +36,17 @@ std::string matf::verification::metamorphic_testing::TokenGenerator::get_random_
     static std::mt19937 gen{std::random_device{}()};
     std::uniform_int_distribution<std::size_t> dist(0, tokens.size() - 1);
     return tokens[dist(gen)];
+}
+
+std::string matf::verification::metamorphic_testing::TokenGenerator::get_invalid_token() {
+    static std::mt19937 gen{std::random_device{}()};
+    constexpr std::string_view alphabet = "abcdefghijklmnopqrstuvwxyz";
+    constexpr std::size_t length = 12;
+    std::uniform_int_distribution<std::size_t> dist(0, alphabet.size() - 1);
+
+    std::string token(length, '\0');
+    do {
+        std::generate(token.begin(), token.end(), [&] { return alphabet[dist(gen)]; });
+    } while (std::find(tokens.begin(), tokens.end(), token) != tokens.end());
+    return token;
 }
