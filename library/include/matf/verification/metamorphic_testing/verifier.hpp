@@ -18,8 +18,8 @@ public:
         spdlog::info("Checking if {} holds for original: \"{}\" and modified: \"{}\" (operator {})",
                      relation.get_name(), input, modified_input, to_string(op));
 
-        auto new_result = client.query(modified_input, op);
         auto original_result = client.query(input, op);
+        auto new_result = client.query(modified_input, op);
 
         auto relation_holds = relation.holds(original_result, new_result);
         spdlog::info("result: {}", relation_holds);

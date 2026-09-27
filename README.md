@@ -1,5 +1,7 @@
 # 2026_Research_MetaforfnoTestiranje
 
+Metamorphic testing of a search engine: indexes a PDF page by page and checks that search results satisfy a set of metamorphic relations. See [SystemDescription.md](docs/SystemDescription.md) for details.
+
 ## Build requirements
 
 | Tool | Version |
@@ -7,28 +9,31 @@
 | CMake | 4.2 or newer |
 | Conan | 2.0 or newer |
 | Ninja | any recent |
-| Clang | 22 (tested) |
-| clang-format | 16 or newer, tested with 22 (formatting only) |
-| clang-tidy | 18 or newer, tested with 23 (static analysis only) |
+| Clang | C++20 support |
+| Docker| any recent |
+| clang-format | 16+ |
+| clang-tidy | 18+ |
 
 ## Build
 
-Install dependencies:
+Dependencies are managed by conan. Install dependencies:
 
 ```sh
-conan install . -pr:a profiles/linux-clang-debug --build=missing
+conan install . -pr:a profiles/linux-clang-release --build=missing
 ```
+
+Use the profile that matches your platform and build type. Profiles are in `profiles/`
 
 Build:
 
 ```sh
-cmake --preset conan-debug
-cmake --build --preset conan-debug
+cmake --preset conan-release
+cmake --build --preset conan-release
 ```
 
 ## Run
 
-Start search engine:
+Start the Elasticsearch engine:
 
 ```sh
 docker compose up -d
@@ -37,31 +42,85 @@ docker compose up -d
 Index a PDF and test relations:
 
 ```sh
-./build/Debug/runner/test_run <file.pdf> [--seed <n>]
+./build/Release/runner/test_run <file.pdf> [--seed <n>]
 ```
-Output will look like:
+
+Any PDF works as input. Each page is indexed as a separate document, so PDFs with more pages give more meaningful results. The vocabulary of the indexed PDF is written to `tokens.txt` in the current directory, and queries are built from it. If `--seed` is omitted, a random seed is used. The seed is always printed, so passing it back with `--seed` repeats the run exactly.
+
+Example:
+
+```sh
+./build/Release/runner/test_run my_pdf.pdf --seed 42
+```
+
 ```text
+[2026-09-26 20:16:42.635] [test_run] [info] seed: 42
+[2026-09-26 20:16:54.868] [test_run] [info] indexed N pages
+[2026-09-26 20:16:55.568] [test_run] [info] wrote M tokens to tokens.txt
+[2026-09-26 20:16:55.571] [test_run] [info] Checking if capitalization_irrelevance holds for original: "x" and modified: "X" (operator or)
+[2026-09-26 20:16:55.584] [test_run] [info] result: true
+[2026-09-26 20:16:55.589] [test_run] [info] Checking if term_addition_monotonicity holds for original: "x" and modified: "x y" (operator or)
+[2026-09-26 20:16:55.594] [test_run] [info] result: true
+[2026-09-26 20:16:55.609] [test_run] [info] Checking if input_permutation holds for original: "x y" and modified: "y x" (operator and)
+[2026-09-26 20:16:55.613] [test_run] [info] result: true
+[2026-09-26 20:16:55.617] [test_run] [info] Checking if invalid_term_relevance holds for original: "x" and modified: "x invalid" (operator and)
+[2026-09-26 20:16:55.622] [test_run] [info] result: true
+...
 SUCCESS: all 8 relations hold (seed 42)
+```
+
+Log lines go to stderr. The final summary goes to stdout. When one or more relations fail, the summary names them:
+
+```text
 FAILURE: 2 of 8 relations failed (seed 42): input_permutation, multiple_term_reduction
 ```
+
+The exit code is `0` if all relations hold, and `1` if any relation fails or an error occurs.
 
 ## Tests
 
 Unit tests cover the engine-independent core (relations, token generation, the verifier) and need no Elasticsearch.
-They use [Catch2](https://github.com/catchorg/Catch2), which `conan install` fetches.
+They use [Catch2](https://github.com/catchorg/Catch2).
 
 ```sh
-cmake --build --preset conan-debug
-ctest --preset conan-debug
+cmake --build --preset conan-release
+ctest --preset conan-release
 ```
 
-Or run the test binary directly, optionally filtered by tag:
+Or run the test binary directly, optionally filtered by test name (wildcards allowed):
 
 ```sh
-./build/Debug/tests/unit_tests "[relations]"
+./build/Release/tests/unit_tests "input_permutation*"
 ```
 
-Pass `-DMETAMORPHIC_TESTING_BUILD_TESTS=OFF` to skip building them.
+Pass `-DMETAMORPHIC_TESTING_BUILD_TESTS=OFF` to `cmake --preset conan-release` to skip building them.
+
+## Static analysis
+
+The project uses clang-tidy for static analysis. Checks are defined in `.clang-tidy` at the repo root. To run, use `tidy.sh`. The script needs the compile database, so configure first:
+
+```sh
+cmake --preset conan-release
+```
+
+Check every C++ source (exits non-zero if any warning is found). `tidy.sh` looks in `build/Debug` by default, so point it at the release build:
+
+```sh
+BUILD_DIR=build/Release ./tidy.sh
+```
+
+Apply the fixes clang-tidy offers, then reformat:
+
+```sh
+BUILD_DIR=build/Release ./tidy.sh --fix
+./format.sh
+```
+
+Check specific files:
+
+```sh
+BUILD_DIR=build/Release ./tidy.sh library/src/token_generator.cpp
+```
 
 ## VS Code setup
 
@@ -69,7 +128,7 @@ Install the CMake Tools and C/C++ extensions. Then:
 
 1. Run `conan install` as shown above. This creates the presets.
 2. Open the project folder.
-3. Pick the `conan-debug` preset when VS Code asks.
+3. Pick the `conan-release` (or `conan-debug`) preset when VS Code asks.
 4. Press F7 to build.
 
 ## Formatting
@@ -94,33 +153,7 @@ Format specific files:
 
 The script picks the first `clang-format` it finds on `PATH`. Override it with `CLANG_FORMAT=/path/to/clang-format`.
 
-## Static analysis
+## Authors
 
-Checks live in `.clang-tidy` at the repo root. `tidy.sh` needs the compile database, so configure first:
-
-```sh
-cmake --preset conan-debug
-```
-
-Check every C++ source (exits non-zero if any warning is found):
-
-```sh
-./tidy.sh
-```
-
-Apply the fixes clang-tidy offers, then reformat:
-
-```sh
-./tidy.sh --fix
-./format.sh
-```
-
-Check specific files:
-
-```sh
-./tidy.sh library/src/token_generator.cpp
-```
-
-The script picks the first `clang-tidy` it finds on `PATH`, falling back to the
-Homebrew LLVM install (`brew install llvm`). Override it with `CLANG_TIDY=/path/to/clang-tidy`
-and the build directory with `BUILD_DIR=/path/to/build`.
+- Đorđe Marić 1020/2025
+- Lazar Cvijić 1030/2025
