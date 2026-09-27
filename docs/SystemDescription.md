@@ -53,26 +53,6 @@ Jedinični testovi (`tests/`) se povezuju samo sa jezgrom, pa se izvršavaju bez
 | Deljenje PDF-a | `pdf/pdf_splitter.{hpp,cpp}` | Deli PDF u memoriji na PDF-ove od po jedne strane, pomoću biblioteke **qpdf**. |
 | Jedinični testovi | `tests/*_test.cpp` | **Catch2** testovi za relacije, generator tokena i verifikator. |
 
-### Elasticsearch klijent
-
-Konstruktor priprema čisto okruženje:
-
-1. `wait_until_ready()` do 30 puta proverava `/_cluster/health?wait_for_status=yellow`, pa se alat može pokrenuti
-   odmah posle `docker compose up`.
-2. `ensure_pipeline()` pravi ingest pipeline `pdf_pipeline`. On koristi **attachment** procesor (Apache Tika
-   unutar Elasticsearch-a) da iz PDF-a kodiranog u base64 izvuče tekst u polje `attachment.content`, a zatim
-   uklanja sirove bajtove. `indexed_chars: -1` isključuje podrazumevano ograničenje broja izvučenih karaktera.
-3. `recreate_index()` briše i ponovo pravi indeks `docs`, sa `pdf_pipeline` kao podrazumevanim pipeline-om.
-   Svako pokretanje zato počinje od praznog indeksa.
-
-Ostale operacije:
-
-- `index_document` šalje stranu kodiranu u base64 i koristi `?refresh=true`, tako da je dokument pretraživ čim
-  se poziv završi.
-- `query` šalje `match` upit nad poljem `attachment.content` sa izabranim operatorom.
-- `get_tokens` prvo izlista sve identifikatore dokumenata, a zatim pomoću `_mtermvectors` čita njihove vektore
-  termova. Vraća sortiranu uniju svih termova.
-
 ## Opis rešenja
 
 ### Osnovna ideja
@@ -116,6 +96,26 @@ Elasticsearch-u, pa se nove relacije i novi pretraživači mogu dodavati nezavis
 | `input_permutation` | AND | dva tokena `a b` | `b a` | `R = R'` | Konjunkcija je komutativna. |
 | `invalid_term_irrelevance` | OR | jedan token | `q` + nevalidan token | `R = R'` | OR sa termom koji ništa ne pogađa ne dodaje ništa. |
 | `invalid_term_relevance` | AND | jedan token | `q` + nevalidan token | `R' = ∅` | AND sa termom koji ništa ne pogađa ne pogađa ništa. |
+
+### Elasticsearch klijent
+
+Konstruktor priprema čisto okruženje:
+
+1. `wait_until_ready()` do 30 puta proverava `/_cluster/health?wait_for_status=yellow`, pa se alat može pokrenuti
+   odmah posle `docker compose up`.
+2. `ensure_pipeline()` pravi ingest pipeline `pdf_pipeline`. On koristi **attachment** procesor (Apache Tika
+   unutar Elasticsearch-a) da iz PDF-a kodiranog u base64 izvuče tekst u polje `attachment.content`, a zatim
+   uklanja sirove bajtove. `indexed_chars: -1` isključuje podrazumevano ograničenje broja izvučenih karaktera.
+3. `recreate_index()` briše i ponovo pravi indeks `docs`, sa `pdf_pipeline` kao podrazumevanim pipeline-om.
+   Svako pokretanje zato počinje od praznog indeksa.
+
+Ostale operacije:
+
+- `index_document` šalje stranu kodiranu u base64 i koristi `?refresh=true`, tako da je dokument pretraživ čim
+  se poziv završi.
+- `query` šalje `match` upit nad poljem `attachment.content` sa izabranim operatorom.
+- `get_tokens` prvo izlista sve identifikatore dokumenata, a zatim pomoću `_mtermvectors` čita njihove vektore
+  termova. Vraća sortiranu uniju svih termova.
 
 ### Ključne odluke
 
