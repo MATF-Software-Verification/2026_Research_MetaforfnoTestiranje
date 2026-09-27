@@ -9,6 +9,7 @@
 | Ninja | any recent |
 | Clang | 22 (tested) |
 | clang-format | 16 or newer, tested with 22 (formatting only) |
+| clang-tidy | 18 or newer, tested with 23 (static analysis only) |
 
 ## Build
 
@@ -74,3 +75,34 @@ Format specific files:
 ```
 
 The script picks the first `clang-format` it finds on `PATH`. Override it with `CLANG_FORMAT=/path/to/clang-format`.
+
+## Static analysis
+
+Checks live in `.clang-tidy` at the repo root. `tidy.sh` needs the compile database, so configure first:
+
+```sh
+cmake --preset conan-debug
+```
+
+Check every C++ source (exits non-zero if any warning is found):
+
+```sh
+./tidy.sh
+```
+
+Apply the fixes clang-tidy offers, then reformat:
+
+```sh
+./tidy.sh --fix
+./format.sh
+```
+
+Check specific files:
+
+```sh
+./tidy.sh library/src/token_generator.cpp
+```
+
+The script picks the first `clang-tidy` it finds on `PATH`, falling back to the
+Homebrew LLVM install (`brew install llvm`). Override it with `CLANG_TIDY=/path/to/clang-tidy`
+and the build directory with `BUILD_DIR=/path/to/build`.

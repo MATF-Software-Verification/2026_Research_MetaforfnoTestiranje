@@ -1,0 +1,12 @@
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-throwing-static-initialization,
+  -bugprone-exception-escape,
+  readability-braces-around-statements,
+  modernize-use-override,
+  modernize-use-nullptr
+
+HeaderFilterRegex: '.*/(library|runner|tests)/.*'
