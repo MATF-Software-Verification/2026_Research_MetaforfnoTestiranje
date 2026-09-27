@@ -1,6 +1,6 @@
 # 2026_Research_MetaforfnoTestiranje
 
-Metamorphic testing of a search engine: indexes a PDF page by page and checks that search results satisfy a set of metamorphic relations. See [SystemDescription.md](SystemDescription.md) for details.
+Metamorphic testing of a search engine: indexes a PDF page by page and checks that search results satisfy a set of metamorphic relations. See [SystemDescription.md](docs/SystemDescription.md) for details.
 
 ## Build requirements
 
@@ -33,7 +33,7 @@ cmake --build --preset conan-release
 
 ## Run
 
-Start search engine:
+Start the Elasticsearch engine:
 
 ```sh
 docker compose up -d
@@ -80,7 +80,7 @@ The exit code is `0` if all relations hold, and `1` if any relation fails or an 
 ## Tests
 
 Unit tests cover the engine-independent core (relations, token generation, the verifier) and need no Elasticsearch.
-They use [Catch2](https://github.com/catchorg/Catch2), which `conan install` fetches.
+They use [Catch2](https://github.com/catchorg/Catch2).
 
 ```sh
 cmake --build --preset conan-release
@@ -93,7 +93,34 @@ Or run the test binary directly, optionally filtered by test name (wildcards all
 ./build/Release/tests/unit_tests "input_permutation*"
 ```
 
-Pass `-DMETAMORPHIC_TESTING_BUILD_TESTS=OFF` to skip building them.
+Pass `-DMETAMORPHIC_TESTING_BUILD_TESTS=OFF` to `cmake --preset conan-release` to skip building them.
+
+## Static analysis
+
+The project uses clang-tidy for static analysis. Checks are defined in `.clang-tidy` at the repo root. To run, use `tidy.sh`. The script needs the compile database, so configure first:
+
+```sh
+cmake --preset conan-release
+```
+
+Check every C++ source (exits non-zero if any warning is found). `tidy.sh` looks in `build/Debug` by default, so point it at the release build:
+
+```sh
+BUILD_DIR=build/Release ./tidy.sh
+```
+
+Apply the fixes clang-tidy offers, then reformat:
+
+```sh
+BUILD_DIR=build/Release ./tidy.sh --fix
+./format.sh
+```
+
+Check specific files:
+
+```sh
+BUILD_DIR=build/Release ./tidy.sh library/src/token_generator.cpp
+```
 
 ## VS Code setup
 
@@ -125,37 +152,6 @@ Format specific files:
 ```
 
 The script picks the first `clang-format` it finds on `PATH`. Override it with `CLANG_FORMAT=/path/to/clang-format`.
-
-## Static analysis
-
-Checks live in `.clang-tidy` at the repo root. `tidy.sh` needs the compile database, so configure first:
-
-```sh
-cmake --preset conan-release
-```
-
-Check every C++ source (exits non-zero if any warning is found). `tidy.sh` looks in `build/Debug` by default, so point it at the release build:
-
-```sh
-BUILD_DIR=build/Release ./tidy.sh
-```
-
-Apply the fixes clang-tidy offers, then reformat:
-
-```sh
-BUILD_DIR=build/Release ./tidy.sh --fix
-./format.sh
-```
-
-Check specific files:
-
-```sh
-BUILD_DIR=build/Release ./tidy.sh library/src/token_generator.cpp
-```
-
-The script picks the first `clang-tidy` it finds on `PATH`, falling back to the
-Homebrew LLVM install (`brew install llvm`). Override it with `CLANG_TIDY=/path/to/clang-tidy`
-and the build directory with `BUILD_DIR=/path/to/build`.
 
 ## Authors
 

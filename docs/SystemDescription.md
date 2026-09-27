@@ -27,37 +27,31 @@ Projekat se sastoji od biblioteke (`library/`) i malog izvršnog programa koji j
 (`runner/`). Zavisnostima upravlja Conan, a prevođenjem CMake. Sav kod se nalazi u prostoru imena
 `matf::verification::metamorphic_testing`.
 
-```
-                    ┌──────────────────────────── runner/test.cpp ────────────────────────────┐
-                    │                                                                          │
-  file.pdf ──► pdf::split_pages ──► ElasticsearchSearchClient::index_document (strana = dokument)│
-                    │                         │                                                │
-                    │                         ▼                                                │
-                    │               get_tokens() ──► tokens.txt ──► TokenGenerator(seed)       │
-                    │                                                     │                    │
-                    │                                                     ▼                    │
-                    │          Verifier ◄── MetamorphicRelation × 8 (generate / mutate / holds)│
-                    │             │                                                            │
-                    │             └──► SearchEngineClient::query(q, op), query(q', op)         │
-                    └──────────────────────────────────────────────────────────────────────────┘
-                                                        │
-                                                        ▼
-                                          Elasticsearch 8.15 (Docker)
-```
+Biblioteka je podeljena na dva CMake targeta:
+
+- `metamorphic_testing_core`: jezgro koje ne zavisi od konkretnog pretraživača. Sadrži relacije, generator
+  tokena, verifikator, interfejs `SearchEngineClient` i `DummySearchClient`.
+- `metamorphic_testing`: adapteri ka stvarnim sistemima, odnosno Elasticsearch klijent i deljenje PDF-a. Oslanja
+  se na jezgro i dodaje zavisnosti prema spoljnim bibliotekama.
+
+Jedinični testovi (`tests/`) se povezuju samo sa jezgrom, pa se izvršavaju bez Elasticsearch-a i Docker-a.
+
+![Arhitektura sistema](architecture.svg)
 
 ### Moduli
 
 | Modul | Fajlovi | Odgovornost |
 |---|---|---|
-| Klijenti pretraživača | `clients/search_engine_client.hpp` | Apstraktni interfejs sistema koji se testira: `index_document(id, bytes)` i `query(text, operator) → set<int>`. |
+| Klijenti | `clients/search_engine_client.hpp` | Apstraktni interfejs sistema koji se testira: `index_document(id, bytes)` i `query(text, operator) → set<int>`. |
 | | `clients/elasticsearch_search_client.{hpp,cpp}` | Pravi klijent. Komunicira sa Elasticsearch-om preko HTTP-a (**cpp-httplib**, **nlohmann_json**, **b64**). |
 | Operator upita | `query_operator.hpp` | `enum class QueryOperator { Or, And }`, preslikava se na operator Elasticsearch `match` upita. |
-| Generator tokena | `token_generator.{hpp,cpp}` | Čuva rečnik korpusa i `std::mt19937` inicijalizovan semenom. Vraća nasumične validne tokene i nasumične *nevalidne* tokene za koje je garantovano da nisu u rečniku. |
+| Generator tokena | `token_generator.{hpp,cpp}` | Čuva rečnik korpusa. Vraća nasumične validne tokene i nasumične *nevalidne* tokene za koje je garantovano da nisu u rečniku. |
 | Metamorfne relacije | `relations/metamorphic_relation.hpp` | Bazna klasa. Relacija određuje kako se generiše polazni ulaz, kako se menja, koji operator upita se koristi i kada relacija važi. |
 | | `relations/*.{hpp,cpp}` | Osam konkretnih relacija (videti ispod). |
 | Verifikator | `verifier.hpp` | Proverava jednu relaciju nad klijentom: generiše ulaz, menja ga, izvršava oba upita i računa `holds`. |
 | Pokretač | `runner/test.cpp` | Izvršni program `test_run`. Obrađuje argumente, indeksira PDF, izvozi tokene, proverava sve relacije i ispisuje rezime. |
 | Deljenje PDF-a | `pdf/pdf_splitter.{hpp,cpp}` | Deli PDF u memoriji na PDF-ove od po jedne strane, pomoću biblioteke **qpdf**. |
+| Jedinični testovi | `tests/*_test.cpp` | **Catch2** testovi za relacije, generator tokena i verifikator. |
 
 ### Elasticsearch klijent
 
@@ -87,7 +81,7 @@ Svaka relacija je trojka **(generator polaznog ulaza, transformacija, predikat r
 koji predikat podrazumeva. Za relaciju `MR`:
 
 ```
-q   = MR.generate_input()          // iz rečnika korpusa
+q   = MR.generate_input()
 q'  = MR.mutate_input(q)
 op  = MR.get_operator()
 R   = client.query(q,  op)
@@ -154,3 +148,7 @@ ispisuje, pa pokretanje sa `--seed N` nad istim PDF-om tačno ponavlja izvršava
 **Čisto stanje pri svakom pokretanju.** Indeks se briše i ponovo pravi, a svaki dokument se indeksira sa
 `refresh=true`. Rezultat testa zato nikada ne zavisi od podataka iz prethodnog pokretanja niti od intervala
 osvežavanja Elasticsearch-a.
+
+**Jezgro odvojeno od pretraživača.** Verifikator i relacije zavise samo od `SearchEngineClient` i
+`TokenGenerator` (koji se može napraviti od liste tokena u memoriji). Zato su izdvojeni u zasebnu biblioteku bez
+mrežnih i PDF zavisnosti. Podrška za novi pretraživač se dodaje kao novi adapter, bez izmena u jezgru.
